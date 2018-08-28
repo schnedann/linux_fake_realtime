@@ -26,3 +26,5 @@
 *.exe
 *.out
 *.app
+
+linux_fake_realtime\.pro\.user
