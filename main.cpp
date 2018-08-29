@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <cstdint>
 #include <ctime>
+#include <chrono>
 #include <cstring>
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -25,6 +26,8 @@ constexpr static int    const MAX_CYCLES     = 1000000;
 constexpr static long   const NSEC_PER_SEC   = 1000000000;
 constexpr static size_t const MAX_SAFE_STACK = 8*1024;
 constexpr static size_t const INTERVAL       = 50000; //0.05ms = 50µs
+
+//-----
 
 /**
  * Not understanding why this piece of code
@@ -54,6 +57,10 @@ void do_work(struct timespec& ts){
   //omit first run
   static bool valid = false;
 
+  static std::chrono::high_resolution_clock::time_point hrt1 = std::chrono::high_resolution_clock::now();;
+  std::chrono::high_resolution_clock::time_point hrt2 = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(hrt2 - hrt1);
+
   //Calculate Cycle Time
   static long oldns = 0;
   long difftime = ts.tv_nsec-oldns;
@@ -70,10 +77,11 @@ void do_work(struct timespec& ts){
   mean = mean + ((difftime - mean)>>1);
 
   //Output...
-  cout << "sec: " << setw(8) << ts.tv_sec << " - nsec: " << setw(10) << ts.tv_nsec << " --> " << setw(8) << difftime << " --> " << setw(8) << min <<" | " << setw(8) << mean <<" | " << setw(8) << max <<"\n";
+  cout << "sec: " << setw(8) << ts.tv_sec << " - nsec: " << setw(10) << ts.tv_nsec << " --> " << setw(8) << difftime << " --> " << setw(8) << min <<" | " << setw(8) << mean <<" | " << setw(8) << max << time_span.count() << "[s]" << "\n";
 
   //Prepare next cycle
   oldns = ts.tv_nsec;
+  hrt1 = hrt2;
   valid |= true;
   return;
 }
