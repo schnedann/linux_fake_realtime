@@ -8,10 +8,12 @@
  *
  * Danny Schneider, 2018
  */
-
+#include <cstdio>
+#include <cstdlib>
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <iomanip>
-#include <cstdint>
 #include <ctime>
 #include <chrono>
 #include <cstring>
@@ -57,6 +59,7 @@ void do_work(struct timespec& ts){
   //omit first run
   static bool valid = false;
 
+  //Messure Precision with stdlib
   static std::chrono::high_resolution_clock::time_point hrt1 = std::chrono::high_resolution_clock::now();;
   std::chrono::high_resolution_clock::time_point hrt2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(hrt2 - hrt1);
