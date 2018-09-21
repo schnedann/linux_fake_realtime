@@ -89,8 +89,8 @@ void do_work(struct timespec& ts){
   return;
 }
 
-int main()
-{
+int main(){
+
   int err = 0;
   cout << "Hello Linux Fake Realtime...!" << endl;
 
