@@ -25,7 +25,8 @@
 
 using namespace std;
 
-constexpr static int    const MAX_CYCLES     = 1000000;
+constexpr static int    const MAX_CYCLES     = 10000;
+//                                            ssmmmuuunnn
 constexpr static long   const NSEC_PER_SEC   = 1000000000;
 constexpr static size_t const MAX_SAFE_STACK = 8*1024;
 constexpr static size_t const INTERVAL       = 50000; //0.05ms = 50µs
@@ -58,7 +59,7 @@ static void tsnorm(struct timespec& ts){
 
 void do_work(struct timespec& ts){
   //omit first run
-  static bool valid = false;
+  static uint8_t valid = 0;
 
   //Messure Precision with stdlib
   static std::chrono::high_resolution_clock::time_point hrt1 = std::chrono::high_resolution_clock::now();
@@ -67,38 +68,28 @@ void do_work(struct timespec& ts){
   hrt1 = hrt2; //Prepare next cycle
 
   //Monitor Min and Max
-  static double hrt_min = std::numeric_limits<double>::max();
-  static double hrt_max = 0;
+  static double min = std::numeric_limits<double>::max();
+  static double max = 0;
   double const value = time_span.count();
-  if(valid && (value<hrt_min)) hrt_min = value;
-  if(valid && (value>hrt_max)) hrt_max = value;
+  if((valid>=10) && (value<min)) min = value;
+  if((valid>=10) && (value>max)) max = value;
 
-  //Calculate Cycle Time
-  static long oldns = 0;
-  long difftime = ts.tv_nsec-oldns;
-  if(difftime<0) difftime += NSEC_PER_SEC;
-
-  //Monitor Min and Max
-  static long min = long(0x7FFFFFFFul);
-  static long max = 0;
-  if(valid && (difftime<min)) min = difftime;
-  if(valid && (difftime>max)) max = difftime;
 
   //Calculate Mean Cycle Time
-  static long mean = 0;
-  mean = mean + ((difftime - mean)>>1);
+  static double mean = 0;
+  if(valid>=10) mean = mean + ((value - mean)/2);
 
   //Output...
+  cout << scientific;
+  cout.precision(6);
   cout << "sec: " << setw(8) << ts.tv_sec << " - nsec: " << setw(10) << ts.tv_nsec << " --> "
-       << setw(8) << difftime << " --> " << setw(8) << min <<" | " << setw(8) << mean <<" | "<< setw(8) << max
-       << hrt_min << "[s] |"
-       << time_span.count() << "[s] |"
-       << hrt_max << "[s]"
-       << "\n";
+       << setw(11) << value << "[s]" << " --> "
+       << setw(11) << min  << " [s]" << " | "
+       << setw(11) << mean << " [s]" << " | "
+       << setw(11) << max  << " [s]" << "\n";
 
   //Prepare next cycle
-  oldns = ts.tv_nsec;
-  valid |= true;
+  if(valid<10)++valid;
   return;
 }
 
