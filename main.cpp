@@ -6,12 +6,14 @@
  *
  * Danny Schneider, 2018
  */
+#include <iostream>
+#include <iomanip>
 #include <cstdio>
 #include <cstdlib>
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
-#include <iomanip>
+#include <array>
+#include <sstream>
 #include <ctime>
 #include <chrono>
 #include <cstring>
@@ -23,25 +25,24 @@
 
 using namespace std;
 
-constexpr static int    const MAX_CYCLES     = 500;
+constexpr static int    const MAX_CYCLES     = 1000;
 //                                            ssmmmuuunnn
 constexpr static long   const NSEC_PER_SEC   = 1000000000;
 constexpr static size_t const MAX_SAFE_STACK = 8*1024;
 //                                            ssmmmuuunnn
-constexpr static size_t const INTERVAL       =     250000; //10ms
+constexpr static size_t const INTERVAL       =    5000000; //5ms
 
 //-----
 
 /**
- * Not understanding why this piece of code
- * should reserve stack... as dummy only lives
- * in the scope of stack_prefault()
- *
- * --> assume Code has no effect at last
+ * Allocating Memory Once causes Stack to grow
+ * if Later Mamory is needed, the OS can use the
+ * allready large Stack without causing Pagefaults
  */
 void stack_prefault(){
-  unsigned char dummy[MAX_SAFE_STACK];
-  memset(&dummy, 0, MAX_SAFE_STACK);
+  volatile std::array<char,MAX_SAFE_STACK> dummy{};
+  /*unsigned char dummy[MAX_SAFE_STACK];
+  memset(&dummy, 0, MAX_SAFE_STACK);*/
   return;
 }
 
@@ -56,7 +57,7 @@ static void tsnorm(struct timespec& ts){
   return;
 }
 
-void do_work(struct timespec& ts){
+void do_work(struct timespec& ts, std::stringstream& ss){
   //omit first run
   static uint8_t valid = 0;
 
@@ -82,13 +83,13 @@ void do_work(struct timespec& ts){
   if(valid>=10) mean = mean + ((value - mean)/2);
 
   //Output...
-  cout << scientific;
-  cout.precision(6);
-  cout << "sec: " << setw(8) << ts.tv_sec << " - nsec: " << setw(10) << ts.tv_nsec << " --> "
-       << setw(11) << value << "[s]" << " --> "
-       << setw(11) << min  << " [s]" << " | "
-       << setw(11) << mean << " [s]" << " | "
-       << setw(11) << max  << " [s]" << "\n";
+  ss << scientific;
+  ss.precision(6);
+  ss << "sec: " << setw(8) << ts.tv_sec << " - nsec: " << setw(10) << ts.tv_nsec << " --> "
+     << setw(11) << value << "[s]" << " --> "
+     << setw(11) << min  << " [s]" << " | "
+     << setw(11) << mean << " [s]" << " | "
+     << setw(11) << max  << " [s]" << "\n";
 
   //Prepare next cycle
   if(valid<10)++valid;
@@ -96,11 +97,11 @@ void do_work(struct timespec& ts){
 }
 
 int main(){
-
   int err = 0;
   cout << "Hello Linux Fake Realtime...!" << endl;
 
   uint32_t ccnt=0; //Cycle Counter
+  std::stringstream ss;
 
   struct timespec t;
   struct sched_param param;
@@ -108,7 +109,7 @@ int main(){
   { //set to 90% of max Priority
     int const pmin = sched_get_priority_min(SCHED_FIFO);
     int const pmax = sched_get_priority_max(SCHED_FIFO);
-    int const pdiff = ((pmax-pmin)*900000)/1000000;
+    int const pdiff = ((pmax-pmin)*950000)/1000000;
     param.sched_priority = pmin+pdiff;
   }
   if(sched_setscheduler(0, SCHED_FIFO, &param) == -1){
@@ -126,7 +127,7 @@ int main(){
   while(1) {
     /* Arbeit durchführen */
     {
-      do_work(t);
+      do_work(t,ss);
       ++ccnt;
       if(ccnt>MAX_CYCLES) break;
     }
@@ -134,6 +135,8 @@ int main(){
     tsnorm(t);             //Overflow handling
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, nullptr);
   }
+
+  cout << ss.str() << "\n";
 
 lERR:
   if(err) cout << "Err: " << err << "\n";
