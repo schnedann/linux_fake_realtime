@@ -4,8 +4,6 @@
  * Code seems to work quite well in providing a stable cycle,
  * even browsing in parallel has no effect on the messurements.
  *
- * Running code on raspberryPi pending
- *
  * Danny Schneider, 2018
  */
 #include <cstdio>
@@ -25,12 +23,12 @@
 
 using namespace std;
 
-constexpr static int    const MAX_CYCLES     = 10000;
+constexpr static int    const MAX_CYCLES     = 500;
 //                                            ssmmmuuunnn
 constexpr static long   const NSEC_PER_SEC   = 1000000000;
 constexpr static size_t const MAX_SAFE_STACK = 8*1024;
 //                                            ssmmmuuunnn
-constexpr static size_t const INTERVAL       =   10000000; //10ms
+constexpr static size_t const INTERVAL       =     250000; //10ms
 
 //-----
 
@@ -72,9 +70,12 @@ void do_work(struct timespec& ts){
   static double min = std::numeric_limits<double>::max();
   static double max = 0;
   double const value = time_span.count();
-  if((valid>=10) && (value<min)) min = value;
-  if((valid>=10) && (value>max)) max = value;
-
+  if((valid>=10) && (value<min)){
+    min = value;
+  }
+  if((valid>=10) && (value>max)){
+    max = value;
+  }
 
   //Calculate Mean Cycle Time
   static double mean = 0;
