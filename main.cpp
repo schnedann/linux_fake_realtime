@@ -31,7 +31,7 @@ constexpr static long   const NSEC_PER_SEC   = 1000000000;
 constexpr static size_t const MAX_SAFE_STACK = 8*1024;
 //                                            ssmmmuuunnn
 constexpr static size_t const INTERVAL       =    5000000; //5ms
-
+constexpr static double const DINTERVAL      = static_cast<double>(INTERVAL)/static_cast<double>(NSEC_PER_SEC);
 //-----
 
 /**
@@ -80,7 +80,9 @@ void do_work(struct timespec& ts, std::stringstream& ss){
 
   //Calculate Mean Cycle Time
   static double mean = 0;
-  if(valid>=10) mean = mean + ((value - mean)/2);
+  if(valid>=10){
+    mean = mean + ((value - mean)/2);
+  }
 
   //Output...
   ss << scientific;
@@ -89,7 +91,8 @@ void do_work(struct timespec& ts, std::stringstream& ss){
      << setw(11) << value << "[s]" << " --> "
      << setw(11) << min  << " [s]" << " | "
      << setw(11) << mean << " [s]" << " | "
-     << setw(11) << max  << " [s]" << "\n";
+     << setw(11) << max  << " [s]" << " { "
+     << ((value>DINTERVAL)?("++"):("--")) << " } " << "\n";
 
   //Prepare next cycle
   if(valid<10)++valid;
@@ -109,7 +112,7 @@ int main(){
   { //set to 90% of max Priority
     int const pmin = sched_get_priority_min(SCHED_FIFO);
     int const pmax = sched_get_priority_max(SCHED_FIFO);
-    int const pdiff = ((pmax-pmin)*950000)/1000000;
+    int const pdiff = ((pmax-pmin)*95000000)/100000000;
     param.sched_priority = pmin+pdiff;
   }
   if(sched_setscheduler(0, SCHED_FIFO, &param) == -1){
