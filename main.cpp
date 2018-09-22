@@ -119,13 +119,12 @@ int main(){
     err=-1;
     goto lERR;
   }
-  /* Lock memory */
+  /* Lock memory (do not swap!)*/
   if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1){
     err=-2;
     goto lERR;
   }
-  /* Stack reservieren */
-  stack_prefault();                   //?
+  stack_prefault();                   //Stack reservieren
   clock_gettime(CLOCK_MONOTONIC, &t); //Guess CLOCK_PROCESS_CPUTIME_ID should work alike...
   while(1) {
     /* Arbeit durchführen */
