@@ -17,6 +17,7 @@
 #include <ctime>
 #include <chrono>
 #include <cstring>
+#include <limits>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/mman.h>
@@ -60,31 +61,43 @@ void do_work(struct timespec& ts){
   static bool valid = false;
 
   //Messure Precision with stdlib
-  static std::chrono::high_resolution_clock::time_point hrt1 = std::chrono::high_resolution_clock::now();;
+  static std::chrono::high_resolution_clock::time_point hrt1 = std::chrono::high_resolution_clock::now();
   std::chrono::high_resolution_clock::time_point hrt2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(hrt2 - hrt1);
+  hrt1 = hrt2; //Prepare next cycle
+
+  //Monitor Min and Max
+  static double hrt_min = std::numeric_limits<double>::max();
+  static double hrt_max = 0;
+  double const value = time_span.count();
+  if(valid && (value<hrt_min)) hrt_min = value;
+  if(valid && (value>hrt_max)) hrt_max = value;
 
   //Calculate Cycle Time
   static long oldns = 0;
   long difftime = ts.tv_nsec-oldns;
-  if(difftime<0) difftime += 1000000000;
+  if(difftime<0) difftime += NSEC_PER_SEC;
 
   //Monitor Min and Max
   static long min = long(0x7FFFFFFFul);
   static long max = 0;
-  if(valid && difftime<min) min = difftime;
-  if(valid && difftime>max) max = difftime;
+  if(valid && (difftime<min)) min = difftime;
+  if(valid && (difftime>max)) max = difftime;
 
   //Calculate Mean Cycle Time
   static long mean = 0;
   mean = mean + ((difftime - mean)>>1);
 
   //Output...
-  cout << "sec: " << setw(8) << ts.tv_sec << " - nsec: " << setw(10) << ts.tv_nsec << " --> " << setw(8) << difftime << " --> " << setw(8) << min <<" | " << setw(8) << mean <<" | " << setw(8) << max << time_span.count() << "[s]" << "\n";
+  cout << "sec: " << setw(8) << ts.tv_sec << " - nsec: " << setw(10) << ts.tv_nsec << " --> "
+       << setw(8) << difftime << " --> " << setw(8) << min <<" | " << setw(8) << mean <<" | "<< setw(8) << max
+       << hrt_min << "[s] |"
+       << time_span.count() << "[s] |"
+       << hrt_max << "[s]"
+       << "\n";
 
   //Prepare next cycle
   oldns = ts.tv_nsec;
-  hrt1 = hrt2;
   valid |= true;
   return;
 }
