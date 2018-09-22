@@ -29,7 +29,8 @@ constexpr static int    const MAX_CYCLES     = 10000;
 //                                            ssmmmuuunnn
 constexpr static long   const NSEC_PER_SEC   = 1000000000;
 constexpr static size_t const MAX_SAFE_STACK = 8*1024;
-constexpr static size_t const INTERVAL       = 50000; //0.05ms = 50µs
+//                                            ssmmmuuunnn
+constexpr static size_t const INTERVAL       =   10000000; //10ms
 
 //-----
 
