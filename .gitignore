@@ -30,3 +30,5 @@
 linux_fake_realtime\.pro\.user
 
 main\.txt
+
+*.autosave
