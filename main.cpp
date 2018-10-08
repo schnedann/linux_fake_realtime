@@ -18,6 +18,8 @@
 #include <chrono>
 #include <cstring>
 #include <limits>
+#include <algorithm>
+#include <functional>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/mman.h>
@@ -39,11 +41,17 @@ constexpr static double const DINTERVAL      = static_cast<double>(INTERVAL)/sta
  * if Later Mamory is needed, the OS can use the
  * allready large Stack without causing Pagefaults
  */
-void stack_prefault(){
-  volatile std::array<char,MAX_SAFE_STACK> dummy{};
-  /*unsigned char dummy[MAX_SAFE_STACK];
-  memset(&dummy, 0, MAX_SAFE_STACK);*/
-  return;
+bool stack_prefault(){
+  //volatile
+  std::array<char,MAX_SAFE_STACK> dummy{};
+
+  bool res = true;
+  std::function<void(char const&)> fkt = [&res](char const& _x){
+    res &= (_x==0);
+    return;
+  };
+  std::for_each(dummy.begin(), dummy.end(), fkt);
+  return res;
 }
 
 /**
@@ -107,24 +115,30 @@ int main(){
   std::stringstream ss;
 
   struct timespec t;
-  struct sched_param param;
   /* Declare ourself as a "real time" task */
   { //set to 90% of max Priority
+    struct sched_param param;
+
     int const pmin = sched_get_priority_min(SCHED_FIFO);
     int const pmax = sched_get_priority_max(SCHED_FIFO);
-    int const pdiff = ((pmax-pmin)*95000000)/100000000;
+    int const pdiff = ((pmax-pmin)*90000000)/100000000;
     param.sched_priority = pmin+pdiff;
-  }
-  if(sched_setscheduler(0, SCHED_FIFO, &param) == -1){
-    err=-1;
-    goto lERR;
+
+    if(sched_setscheduler(0, SCHED_FIFO, &param) == -1){
+      err=-1;
+      goto lERR;
+    }
   }
   /* Lock memory (do not swap!)*/
   if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1){
     err=-2;
     goto lERR;
   }
-  stack_prefault();                   //Stack reservieren
+  /* Stack reservieren*/
+  if(!stack_prefault()){
+    err=-3;
+    goto lERR;
+  }
   clock_gettime(CLOCK_MONOTONIC, &t); //Guess CLOCK_PROCESS_CPUTIME_ID should work alike...
   while(1) {
     /* Arbeit durchführen */
