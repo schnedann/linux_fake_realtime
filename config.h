@@ -4,12 +4,12 @@
 #include <cstdint>
 #include <cstddef>
 
-constexpr static bool   const LOG_CYCLES     = true;
+constexpr static bool   const LOG_CYCLES     = false;
 constexpr static bool   const RUNTIME_EVAL   = false; //implicit switch of of LOG_CYCLES
                                                       //Data is evaluated after messurement
 
 constexpr static int    const MAX_CYCLES     = 1000;
-constexpr static bool   const USE_RT_PRIO    = true; //For Debugging set to false!
+constexpr static bool   const USE_RT_PRIO    = false; //For Debugging set to false!
 //                                            ssmmmuuunnn
 constexpr static long   const NSEC_PER_SEC   = 1000000000;
 constexpr static size_t const MAX_SAFE_STACK = 8*1024;

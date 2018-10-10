@@ -8,6 +8,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
 
 #include "config.h"
 
@@ -105,6 +106,32 @@ public:
 
       valid = uint8_t(valid<<1) | uint8_t(1); //Just prevent <1 (no efficency needed)
     }
+    return;
+  }
+
+  void result_histogram(std::stringstream& ss){
+    constexpr size_t const sidebins = 10;
+    std::array<uint32_t,2*sidebins+1> hist{};
+
+    double binsize = 0.005; //2.5%
+
+    for(double _v:data){
+      double x = _v - DINTERVAL;
+      bool slower = (x<0)?(true):(false);
+             x=std::abs(x);
+      double y = x / (DINTERVAL*binsize);
+      size_t z = size_t(std::lround(y));
+      if(slower) z+=sidebins;
+      else       z = (sidebins+1)-z;
+      ++hist[z%hist.size()];
+    }
+
+    //Simple List Output
+    ss << "|";
+    for(uint32_t _v:hist){
+      ss << _v << "|";
+    }
+    ss << "\n";
     return;
   }
 

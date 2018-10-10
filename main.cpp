@@ -132,6 +132,10 @@ int main(){
   }
 
   if(!RUNTIME_EVAL) mm.result_offline(ss);
+  if(!RUNTIME_EVAL){
+    ss << "Histogram \n";
+    mm.result_histogram(ss);
+  }
   cout << ss.str() << "\n";
 
 lERR:
