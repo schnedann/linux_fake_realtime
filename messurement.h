@@ -29,7 +29,7 @@ private:
 
 public:
   messurement():index(0),valid(0),
-                value(0),min(std::numeric_limits<double>::max()),mean(0),max(0),
+                value(0),min(std::numeric_limits<double>::max()),mean(DINTERVAL),max(0),
                 hrt1(std::chrono::high_resolution_clock::now()),hrt2(std::chrono::high_resolution_clock::now()){
     return;
   }
@@ -85,12 +85,13 @@ public:
     ss << std::scientific;
     ss.precision(6);
 
+    uint8_t valid = 0;
     for(double _v:data){
       //Monitor Min and Max
-      if((_v<min)){
+      if((valid>=1) && (_v<min)){
         min = _v;
       }
-      if((_v>max)){
+      if((valid>=1) && (_v>max)){
         max = _v;
       }
 
@@ -102,7 +103,10 @@ public:
          << std::setw(11) << mean << " [s]" << " | "
          << std::setw(11) << max  << " [s]" << " { "
          << ((_v>DINTERVAL)?("++"):("--")) << " } " << "\n";
+
+      valid = uint8_t(valid<<1) | uint8_t(1);
     }
+    return;
   }
 
 };
