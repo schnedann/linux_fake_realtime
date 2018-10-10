@@ -14,7 +14,7 @@
 template<size_t C> class messurement
 {
 private:
-  std::array<double,C> data{};
+  std::array<double,C> data{}; //preinitialized Array
   size_t index;
 
   uint8_t valid;
@@ -35,7 +35,6 @@ public:
   }
 
   void take(){
-
     //Take current Time
     hrt2 = std::chrono::high_resolution_clock::now();
 
@@ -81,12 +80,12 @@ public:
   }
 
   void result_offline(std::stringstream& ss){
-
     ss << std::scientific;
     ss.precision(6);
 
     uint8_t valid = 0;
     for(double _v:data){
+
       //Monitor Min and Max
       if((valid>=1) && (_v<min)){
         min = _v;
@@ -104,7 +103,7 @@ public:
          << std::setw(11) << max  << " [s]" << " { "
          << ((_v>DINTERVAL)?("++"):("--")) << " } " << "\n";
 
-      valid = uint8_t(valid<<1) | uint8_t(1);
+      valid = uint8_t(valid<<1) | uint8_t(1); //Just prevent <1 (no efficency needed)
     }
     return;
   }
