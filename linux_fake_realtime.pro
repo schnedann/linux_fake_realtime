@@ -4,8 +4,7 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 SOURCES += \
-        main.cpp \
-    messurement.cpp
+        main.cpp
 
 HEADERS += \
     messurement.h \
