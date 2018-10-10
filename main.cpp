@@ -25,26 +25,23 @@
 #include <sys/mman.h>
 #include <sched.h>
 
+#include "config.h"
+#include "messurement.h"
+
 using namespace std;
 
-constexpr static int    const MAX_CYCLES     = 1000;
-//                                            ssmmmuuunnn
-constexpr static long   const NSEC_PER_SEC   = 1000000000;
-constexpr static size_t const MAX_SAFE_STACK = 8*1024;
-//                                            ssmmmuuunnn
-constexpr static size_t const INTERVAL       =    5000000; //5ms
-constexpr static double const DINTERVAL      = static_cast<double>(INTERVAL)/static_cast<double>(NSEC_PER_SEC);
 //-----
 
 /**
- * Allocating Memory Once causes Stack to grow
- * if Later Mamory is needed, the OS can use the
- * allready large Stack without causing Pagefaults
+ * @brief stack_prefault - Allocating Memory Once causes Stack to grow
+ *                         if Later Mamory is needed, the OS can use the
+ *                         allready large Stack without causing Pagefaults
+ * @return
  */
 bool stack_prefault(){
-  //volatile
+  //null initialized Array
   std::array<char,MAX_SAFE_STACK> dummy{};
-
+  //"use" variable :-) --> compiler warning
   bool res = true;
   std::function<void(char const&)> fkt = [&res](char const& _x){
     res &= (_x==0);
@@ -55,7 +52,8 @@ bool stack_prefault(){
 }
 
 /**
- * correct time-struct on nanosecond overflow
+ * @brief tsnorm - correct time-struct on nanosecond overflow
+ * @param ts
  */
 static void tsnorm(struct timespec& ts){
   while (ts.tv_nsec >= NSEC_PER_SEC) {
@@ -65,48 +63,25 @@ static void tsnorm(struct timespec& ts){
   return;
 }
 
+/**
+ * @brief do_work
+ * @param ts
+ * @param ss
+ */
 void do_work(struct timespec& ts, std::stringstream& ss){
-  //omit first run
-  static uint8_t valid = 0;
-
-  //Messure Precision with stdlib
-  static std::chrono::high_resolution_clock::time_point hrt1 = std::chrono::high_resolution_clock::now();
-  std::chrono::high_resolution_clock::time_point hrt2 = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(hrt2 - hrt1);
-  hrt1 = hrt2; //Prepare next cycle
-
-  //Monitor Min and Max
-  static double min = std::numeric_limits<double>::max();
-  static double max = 0;
-  double const value = time_span.count();
-  if((valid>=10) && (value<min)){
-    min = value;
-  }
-  if((valid>=10) && (value>max)){
-    max = value;
-  }
-
-  //Calculate Mean Cycle Time
-  static double mean = 0;
-  if(valid>=10){
-    mean = mean + ((value - mean)/2);
-  }
+  static messurement<MAX_CYCLES> mm;
+  mm.take();
 
   //Output...
-  ss << scientific;
-  ss.precision(6);
-  ss << "sec: " << setw(8) << ts.tv_sec << " - nsec: " << setw(10) << ts.tv_nsec << " --> "
-     << setw(11) << value << "[s]" << " --> "
-     << setw(11) << min  << " [s]" << " | "
-     << setw(11) << mean << " [s]" << " | "
-     << setw(11) << max  << " [s]" << " { "
-     << ((value>DINTERVAL)?("++"):("--")) << " } " << "\n";
-
-  //Prepare next cycle
-  if(valid<10)++valid;
-  return;
+  if(LOG_CYCLES){
+    mm.result_cycle(ts,ss);
+  }
 }
 
+/**
+ * @brief main
+ * @return
+ */
 int main(){
   int err = 0;
   cout << "Hello Linux Fake Realtime...!" << endl;
@@ -115,30 +90,34 @@ int main(){
   std::stringstream ss;
 
   struct timespec t;
-  /* Declare ourself as a "real time" task */
-  { //set to 90% of max Priority
-    struct sched_param param;
 
-    int const pmin = sched_get_priority_min(SCHED_FIFO);
-    int const pmax = sched_get_priority_max(SCHED_FIFO);
-    int const pdiff = ((pmax-pmin)*90000000)/100000000;
-    param.sched_priority = pmin+pdiff;
+  if(USE_RT_PRIO){
+    /* Declare ourself as a "real time" task */
+    { //set to 90% of max Priority
+      struct sched_param param;
 
-    if(sched_setscheduler(0, SCHED_FIFO, &param) == -1){
-      err=-1;
+      int const pmin = sched_get_priority_min(SCHED_FIFO);
+      int const pmax = sched_get_priority_max(SCHED_FIFO);
+      int const pdiff = ((pmax-pmin)*90000000)/100000000;
+      param.sched_priority = pmin+pdiff;
+
+      if(sched_setscheduler(0, SCHED_FIFO, &param) == -1){
+        err=-1;
+        goto lERR;
+      }
+    }
+    /* Lock memory (do not swap!)*/
+    if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1){
+      err=-2;
+      goto lERR;
+    }
+    /* Stack reservieren*/
+    if(!stack_prefault()){
+      err=-3;
       goto lERR;
     }
   }
-  /* Lock memory (do not swap!)*/
-  if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1){
-    err=-2;
-    goto lERR;
-  }
-  /* Stack reservieren*/
-  if(!stack_prefault()){
-    err=-3;
-    goto lERR;
-  }
+
   clock_gettime(CLOCK_MONOTONIC, &t); //Guess CLOCK_PROCESS_CPUTIME_ID should work alike...
   while(1) {
     /* Arbeit durchführen */
