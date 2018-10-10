@@ -5,6 +5,8 @@
 #include <cstddef>
 
 constexpr static bool   const LOG_CYCLES     = true;
+constexpr static bool   const RUNTIME_EVAL   = false; //implicit switch of of LOG_CYCLES
+                                                      //Data is evaluated after messurement
 
 constexpr static int    const MAX_CYCLES     = 1000;
 constexpr static bool   const USE_RT_PRIO    = true; //For Debugging set to false!

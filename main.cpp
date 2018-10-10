@@ -63,19 +63,19 @@ static void tsnorm(struct timespec& ts){
   return;
 }
 
+static messurement<MAX_CYCLES> mm;
+
 /**
  * @brief do_work
  * @param ts
  * @param ss
  */
 void do_work(struct timespec& ts, std::stringstream& ss){
-  static messurement<MAX_CYCLES> mm;
+  //static messurement<MAX_CYCLES> mm;
   mm.take();
 
   //Output...
-  if(LOG_CYCLES){
-    mm.result_cycle(ts,ss);
-  }
+  mm.result_cycle(ts,ss);
 }
 
 /**
@@ -131,6 +131,7 @@ int main(){
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, nullptr);
   }
 
+  if(!RUNTIME_EVAL) mm.result_offline(ss);
   cout << ss.str() << "\n";
 
 lERR:

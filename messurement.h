@@ -35,6 +35,8 @@ public:
   }
 
   void take(){
+
+    //Take current Time
     hrt2 = std::chrono::high_resolution_clock::now();
 
     //Messure Precision with stdlib
@@ -44,35 +46,65 @@ public:
     value = time_span.count();
     data[index++] = value;
 
-    //Monitor Min and Max
-    if((valid>=10) && (value<min)){
-      min = value;
-    }
-    if((valid>=10) && (value>max)){
-      max = value;
-    }
+    if(RUNTIME_EVAL){
+      //Monitor Min and Max
+      if((valid>=10) && (value<min)){
+        min = value;
+      }
+      if((valid>=10) && (value>max)){
+        max = value;
+      }
 
-    //Calculate Mean Cycle Time
-    if(valid>=10){
-      mean = mean + ((value - mean)/2);
+      //Calculate Mean Cycle Time
+      if(valid>=10){
+        mean = mean + ((value - mean)/2);
+      }
+
+      //Prepare next cycle
+      if(valid<10)++valid;
     }
-
-    //Prepare next cycle
-    if(valid<10)++valid;
-
     return;
   }
 
   void result_cycle(struct timespec& ts, std::stringstream& ss){
+    if(RUNTIME_EVAL && LOG_CYCLES){
+      ss << std::scientific;
+      ss.precision(6);
+      ss << "sec: " << std::setw(8) << ts.tv_sec << " - nsec: " << std::setw(10) << ts.tv_nsec << " --> "
+         << std::setw(11) << value << "[s]" << " --> "
+         << std::setw(11) << min  << " [s]" << " | "
+         << std::setw(11) << mean << " [s]" << " | "
+         << std::setw(11) << max  << " [s]" << " { "
+         << ((value>DINTERVAL)?("++"):("--")) << " } " << "\n";
+    }
+    return;
+  }
+
+  void result_offline(std::stringstream& ss){
+
     ss << std::scientific;
     ss.precision(6);
-    ss << "sec: " << std::setw(8) << ts.tv_sec << " - nsec: " << std::setw(10) << ts.tv_nsec << " --> "
-       << std::setw(11) << value << "[s]" << " --> "
-       << std::setw(11) << min  << " [s]" << " | "
-       << std::setw(11) << mean << " [s]" << " | "
-       << std::setw(11) << max  << " [s]" << " { "
-       << ((value>DINTERVAL)?("++"):("--")) << " } " << "\n";
+
+    for(double _v:data){
+      //Monitor Min and Max
+      if((_v<min)){
+        min = _v;
+      }
+      if((_v>max)){
+        max = _v;
+      }
+
+      //Calculate Mean Cycle Time
+      mean = mean + ((_v - mean)/2);
+
+      ss << std::setw(11) << _v << "[s]" << " --> "
+         << std::setw(11) << min  << " [s]" << " | "
+         << std::setw(11) << mean << " [s]" << " | "
+         << std::setw(11) << max  << " [s]" << " { "
+         << ((_v>DINTERVAL)?("++"):("--")) << " } " << "\n";
+    }
   }
+
 };
 
 
