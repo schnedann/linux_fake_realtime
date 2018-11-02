@@ -47,21 +47,28 @@ public:
     data[index++] = value;
 
     if(RUNTIME_EVAL){
+
+      if(valid==SKIP_CYCLES){
+        min = std::numeric_limits<double>::max();
+        max = 0;
+      }
+
       //Monitor Min and Max
-      if((valid>=10) && (value<min)){
+      if((valid>SKIP_CYCLES) && (value<min)){
         min = value;
       }
-      if((valid>=10) && (value>max)){
+      if((valid>SKIP_CYCLES) && (value>max)){
         max = value;
       }
 
       //Calculate Mean Cycle Time
-      if(valid>=10){
+      if(valid>0){
+      //if(valid>SKIP_CYCLES){
         mean = mean + ((value - mean)/2);
       }
 
       //Prepare next cycle
-      if(valid<10)++valid;
+      if(valid<=SKIP_CYCLES)++valid;
     }
     return;
   }

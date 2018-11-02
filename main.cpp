@@ -25,11 +25,30 @@
 #include <sys/mman.h>
 #include <sched.h>
 
+#include <random>
+
 #include "config.h"
 #include "messurement.h"
 
 using namespace std;
 
+//-----
+
+class work1{
+private:
+
+public:
+  work1()=default;
+  uint32_t getrnd();
+};
+
+//work1::work1():rd(),gen(rd),dis(0,0xFFFFFFFFul){}
+uint32_t work1::getrnd(){
+  static std::random_device rd;  //Will be used to obtain a seed for the random number engine
+  static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+  static std::uniform_int_distribution<uint32_t> dis(0, 0xFFFFFFFFul);
+  return dis(gen);
+}
 //-----
 
 /**
@@ -64,6 +83,7 @@ static void tsnorm(struct timespec& ts){
 }
 
 static messurement<MAX_CYCLES> mm;
+static work1 w1;
 
 /**
  * @brief do_work
@@ -71,8 +91,17 @@ static messurement<MAX_CYCLES> mm;
  * @param ss
  */
 void do_work(struct timespec& ts, std::stringstream& ss){
-  //static messurement<MAX_CYCLES> mm;
   mm.take();
+
+  volatile uint8_t count = 0;
+  if(1==WORK_SELECT){
+    uint32_t x = w1.getrnd();
+    for(uint8_t bits=0; bits<(sizeof(uint32_t)<<3);++bits){
+      uint32_t mask = uint32_t(1ul<<bits);
+      bool high = ((x&mask)>0);
+      if(high) ++count;
+    }
+  }
 
   //Output...
   mm.result_cycle(ts,ss);
